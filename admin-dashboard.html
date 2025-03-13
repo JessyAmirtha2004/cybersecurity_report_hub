@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .sidebar {
+            width: 250px;
+            background: #343a40;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .sidebar button {
+            width: 100%;
+            background: none;
+            border: none;
+            color: white;
+            text-align: left;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .sidebar button:hover {
+            background: #495057;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        .dashboard-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            width: 30%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #343a40;
+            color: white;
+        }
+        canvas {
+            max-width: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <button onclick="showSection('dashboard')">Dashboard</button>
+        <button onclick="showSection('manage-users')">Manage Users</button>
+        <button onclick="showSection('incident-reports')">Incident Reports</button>
+        <button onclick="showSection('assign-incident')">Assign Incidents</button>
+        <button onclick="showSection('notifications')">Notifications</button>
+        <button onclick="showSection('audit-logs')">Audit Logs</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="dashboard" class="content active">
+        <h2>Incident Overview</h2>
+        <div class="dashboard-stats">
+            <div class="stat-box">Total Incidents: <span id="incidentCount">0</span></div>
+            <div class="stat-box">Open Incidents: <span id="openCount">0</span></div>
+            <div class="stat-box">Resolved Incidents: <span id="resolvedCount">0</span></div>
+        </div>
+        <canvas id="incidentChart"></canvas>
+    </div>
+
+    <div id="audit-logs" class="content">
+        <h2>Audit Logs</h2>
+        <p>To view detailed audit logs, please click the link below:</p>
+        <a href="http://localhost/audit_trail/login.php" target="_blank" style="padding: 10px 20px; font-size: 16px; text-decoration: none; color: white; background-color: #007bff; border: none; border-radius: 4px;">
+            View Full Audit Logs
+        </a>
+    </div>
+
+      <div id="notifications" class="content">
+        <div class="notification-section">
+            <h3>Notifications</h3>
+            <ul id="notification-list" class="notification-list"></ul>
+            <button class="clear-btn" onclick="clearNotifications()">Clear Notifications</button>
+        </div>
+    </div>
+
+    <div id="manage-users" class="content">
+        <h2>Manage Users</h2>
+        <input type="text" id="username" placeholder="Enter Username">
+        <select id="role">
+            <option value="Admin">Admin</option>
+            <option value="User">User</option>
+            <option value="Analyst">Analyst</option>
+        </select>
+        <button onclick="addUser()">Add User</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTable"></tbody>
+        </table>
+    </div>
+
+    <div id="incident-reports" class="content">
+        <h2>Incident Reports</h2>
+        <input type="text" id="incidentDesc" placeholder="Enter Incident Description">
+        <select id="incidentStatus">
+            <option value="Reported">Reported</option>
+            <option value="Investigating">Investigating</option>
+            <option value="Resolved">Resolved</option>
+        </select>
+        <button onclick="addIncident()">Add Incident</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="incident-list"></tbody>
+        </table>
+    </div>
+ <div id="assign-incident" class="content">
+    <h2>Assign Incidents to Analysts</h2>
+    <select id="attackType">
+        <option value="Phishing">Phishing</option>
+        <option value="Ransomware">Ransomware</option>
+        <option value="DDoS Attacks">DDoS Attacks</option>
+        <option value="Malware">Malware</option>
+    </select>
+
+    <select id="assignAnalyst">
+        <option value="Analyst 1">Analyst 1</option>
+        <option value="Analyst 2">Analyst 2</option>
+        <option value="Analyst 3">Analyst 3</option>
+    </select>
+    <button onclick="assignIncident()">Assign</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Attack Type</th>
+                <th>Assigned Analyst</th>
+            </tr>
+        </thead>
+        <tbody id="assignment-list"></tbody>
+    </table>
+</div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+    loadUsers();
+    loadIncidents();
+    loadAssignments();
+    updateDashboardStats();
+});
+
+function showSection(sectionId) {
+    document.querySelectorAll(".content").forEach(div => div.classList.remove("active"));
+    document.getElementById(sectionId).classList.add("active");
+}
+
+function logout() {
+    alert("Logging out...");
+    window.location.href = "/";
+}
+
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+function addUser() {
+    let username = document.getElementById("username").value;
+    let role = document.getElementById("role").value;
+    if (username.trim() === "") {
+        alert("Username cannot be empty!");
+        return;
+    }
+    users.push({ username, role });
+    saveUsers();
+    updateUserTable();
+}
+
+function saveUsers() {
+    localStorage.setItem("users", JSON.stringify(users));
+}
+
+function loadUsers() {
+    users = JSON.parse(localStorage.getItem("users")) || [];
+    updateUserTable();
+}
+
+function updateUserTable() {
+    let table = document.getElementById("userTable");
+    table.innerHTML = "";
+    users.forEach((user, index) => {
+        let row = `<tr>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td>
+                <button onclick="viewUser(${index})">View</button>
+                <button onclick="editUser(${index})">Edit</button>
+                <button onclick="deleteUser(${index})">Delete</button>
+            </td>
+        </tr>`;
+        table.innerHTML += row;
+    });
+}
+
+function viewUser(index) {
+    alert(`Username: ${users[index].username}\nRole: ${users[index].role}`);
+}
+
+function editUser(index) {
+    let newUsername = prompt("Enter new username:", users[index].username);
+    if (newUsername) {
+        users[index].username = newUsername;
+        saveUsers();
+        updateUserTable();
+    }
+}
+
+function deleteUser(index) {
+    users.splice(index, 1);
+    saveUsers();
+    updateUserTable();
+}
+
+let incidents = JSON.parse(localStorage.getItem("incidents")) || [];
+let incidentCounter = localStorage.getItem("incidentCounter") || 1;
+
+function addIncident() {
+    let description = document.getElementById("incidentDesc").value;
+    let status = document.getElementById("incidentStatus").value;
+    if (description.trim() === "") {
+        alert("Incident description cannot be empty!");
+        return;
+    }
+    incidents.push({ id: incidentCounter++, description, status });
+    saveIncidents();
+    updateIncidentTable();
+    updateDashboardStats();
+}
+
+function saveIncidents() {
+    localStorage.setItem("incidents", JSON.stringify(incidents));
+    localStorage.setItem("incidentCounter", incidentCounter);
+}
+
+function loadIncidents() {
+    incidents = JSON.parse(localStorage.getItem("incidents")) || [];
+    updateIncidentTable();
+}
+
+function updateIncidentTable() {
+    let table = document.getElementById("incident-list");
+    table.innerHTML = "";
+    incidents.forEach(incident => {
+        let row = `<tr>
+            <td>${incident.id}</td>
+            <td>${incident.description}</td>
+            <td>${incident.status}</td>
+        </tr>`;
+        table.innerHTML += row;
+    });
+}
+
+function updateDashboardStats() {
+    let total = incidents.length;
+    let open = incidents.filter(i => i.status !== "Resolved").length;
+    let resolved = incidents.filter(i => i.status === "Resolved").length;
+
+    document.getElementById("incidentCount").innerText = total;
+    document.getElementById("openCount").innerText = open;
+    document.getElementById("resolvedCount").innerText = resolved;
+
+    updateIncidentChart(open, resolved);
+}
+
+let incidentChart = null;
+function updateIncidentChart(open, resolved) {
+    let ctx = document.getElementById("incidentChart").getContext("2d");
+
+    if (incidentChart) {
+        incidentChart.destroy(); // Prevent duplicate charts
+    }
+
+    incidentChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Open Incidents", "Resolved Incidents"],
+            datasets: [{
+                data: [open, resolved],
+                backgroundColor: ["red", "green"]
+            }]
+        }
+    });
+}
+
+
+function loadNotifications() {
+        let notifications = JSON.parse(localStorage.getItem("notifications")) || [];
+        const notificationList = document.getElementById("notification-list");
+        notificationList.innerHTML = "";
+
+        notifications.forEach((notif, index) => {
+            notificationList.innerHTML += `<li>${notif}</li>`;
+        });
+
+        if (notifications.length === 0) {
+            notificationList.innerHTML = "<li>No notifications</li>";
+        }
+    }
+
+    function clearNotifications() {
+        localStorage.removeItem("notifications");
+        loadNotifications();
+    }
+
+    window.onload = loadNotifications;
+
+// INCIDENT ASSIGNMENT
+let assignments = JSON.parse(localStorage.getItem("assignments")) || [];
+
+function assignIncident() {
+    let attackType = document.getElementById("attackType").value;
+    let analyst = document.getElementById("assignAnalyst").value;
+
+    if (!attackType || !analyst) {
+        alert("Please select attack type and analyst!");
+        return;
+    }
+
+    let assignment = { attackType, analyst };
+    assignments.push(assignment);
+    saveAssignments();
+    updateAssignmentTable();
+}
+
+function saveAssignments() {
+    localStorage.setItem("assignments", JSON.stringify(assignments));
+}
+
+function loadAssignments() {
+    assignments = JSON.parse(localStorage.getItem("assignments")) || [];
+    updateAssignmentTable();
+}
+
+function updateAssignmentTable() {
+    let table = document.getElementById("assignment-list");
+    table.innerHTML = "";
+    assignments.forEach(assignment => {
+        let row = `<tr><td>${assignment.attackType}</td><td>${assignment.analyst}</td></tr>`;
+        table.innerHTML += row;
+    });
+}
+    </script>
+
+</body>
+</html>

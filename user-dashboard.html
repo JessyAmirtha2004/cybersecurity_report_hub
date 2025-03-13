@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .sidebar {
+            width: 250px;
+            background: #343a40;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .sidebar a:hover {
+            background: #495057;
+        }
+        .main-content {
+            margin-left: 270px;
+            flex: 1;
+            padding: 20px;
+        }
+        .incident-form {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+        }
+        .incident-form select, .incident-form textarea, .incident-form button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .incident-form button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .incident-form button:hover {
+            background: #0056b3;
+        }
+        .incident-list {
+            margin-top: 20px;
+        }
+        .incident-list h3 {
+            margin-top: 0;
+        }
+        .incident-item {
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .notification {
+            display: none;
+            padding: 10px;
+            margin-top: 10px;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>User Dashboard</h2>
+        <a href="#" onclick="showSection('report-incident')">Report Incident</a>
+        <a href="#" onclick="showSection('track-incidents')">Track Incidents</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+
+    <div class="main-content">
+        <!-- Report Incident Section -->
+        <div id="report-incident" class="content active">
+            <h2>Report a Cybersecurity Incident</h2>
+            <div class="incident-form">
+                <label for="incidentType">Incident Type:</label>
+                <select id="incidentType">
+                    <option value="Phishing">Phishing</option>
+                    <option value="Malware">Malware</option>
+                    <option value="Unauthorized Access">Unauthorized Access</option>
+                    <option value="Data Breach">Data Breach</option>
+                </select>
+                
+                <label for="incidentDescription">Description:</label>
+                <textarea id="incidentDescription" placeholder="Describe the incident..."></textarea>
+
+                <label for="incidentSeverity">Severity:</label>
+                <select id="incidentSeverity">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+
+                <button onclick="submitIncident()">Submit Incident</button>
+
+                <div id="notification" class="notification">Incident reported successfully! Admin has been notified.</div>
+            </div>
+        </div>
+
+        <!-- Track Incidents Section -->
+        <div id="track-incidents" class="content" style="display: none;">
+            <h2>Track Submitted Incidents</h2>
+            <div class="incident-list" id="incidentList">
+                <h3>Reported Incidents</h3>
+                <p>No incidents reported yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll(".content").forEach(div => div.style.display = "none");
+            document.getElementById(sectionId).style.display = "block";
+        }
+
+        // Logout function (data persists)
+function logout() {
+    alert("Logging out...");
+    window.location.href = "/";
+}
+        function submitIncident() {
+    let type = document.getElementById("incidentType").value;
+    let description = document.getElementById("incidentDescription").value.trim();
+    let severity = document.getElementById("incidentSeverity").value;
+
+    if (description === "") {
+        alert("Please provide a description for the incident.");
+        return;
+    }
+
+    let incidents = JSON.parse(localStorage.getItem("incidents")) || [];
+    
+    // Generate a proper ID (fixing the 'undefined' issue)
+    let newId = incidents.length > 0 ? incidents[incidents.length - 1].id + 1 : 1;
+    
+    let incident = {
+        id: newId,  // Fixing 'undefined' ID issue
+        type: type,
+        description: description,
+        severity: severity,
+        status: "Reported", // Ensuring the status is always 'Reported' by default
+        timestamp: new Date().toLocaleString()
+    };
+
+    incidents.push(incident);
+    localStorage.setItem("incidents", JSON.stringify(incidents));
+
+    // Show confirmation
+    let notification = document.getElementById("notification");
+    notification.style.display = "block";
+    setTimeout(() => { notification.style.display = "none"; }, 3000);
+
+    // Update the incident list
+    updateIncidentList();
+
+    // Notify Admin (Store in a separate admin notification list)
+    notifyAdmin(incident);
+}
+
+function notifyAdmin(incident) {
+    let adminNotifications = JSON.parse(localStorage.getItem("adminNotifications")) || [];
+    
+    let notificationMessage = `New Incident Reported: [ID: ${incident.id}] ${incident.type} - Severity: ${incident.severity}`;
+    
+    adminNotifications.push(notificationMessage);
+    localStorage.setItem("adminNotifications", JSON.stringify(adminNotifications));
+
+    console.log("Admin notified with message:", notificationMessage);
+}
+
+function updateIncidentList() {
+    let incidents = JSON.parse(localStorage.getItem("incidents")) || [];
+    let incidentList = document.getElementById("incidentList");
+
+    if (incidents.length === 0) {
+        incidentList.innerHTML = "<h3>Reported Incidents</h3><p>No incidents reported yet.</p>";
+        return;
+    }
+
+    let listHtml = "<h3>Reported Incidents</h3>";
+    incidents.forEach(incident => {
+        listHtml += `
+            <div class="incident-item">
+                <strong>ID:</strong> ${incident.id} <br>
+                <strong>Type:</strong> ${incident.type} <br>
+                <strong>Description:</strong> ${incident.description} <br>
+                <strong>Severity:</strong> ${incident.severity} <br>
+                <strong>Status:</strong> ${incident.status} <br>
+                <small>Reported at: ${incident.timestamp}</small>
+            </div>
+        `;
+    });
+
+    incidentList.innerHTML = listHtml;
+}
+
+window.onload = updateIncidentList;
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Role</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: url('https://www.csoonline.com/wp-content/uploads/2023/06/access_control_setting_on_virtual_display_authentication_privileges_by_putilich_gettyimages-1215246629_cso_nw_2400x1600-100852996-orig.jpg?quality=50&strip=all') no-repeat center center/cover; 
+            color: white;
+            text-align: center;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            width: 90%;
+            max-width: 500px;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .user-btn {
+            grid-column: span 2;
+        }
+
+        /* Button Styles */
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Select Your Role</h1>
+        <div class="button-grid">
+            <button onclick="redirectToLogin('admin')">Admin</button>
+            <button onclick="redirectToLogin('analyst')">Analyst</button>
+            <button class="user-btn" onclick="redirectToLogin('user')">User</button>
+        </div>
+    </div>
+
+    <script>
+        function redirectToLogin(role) {
+            // Redirect to the correct Flask route
+            window.location.href = "/" + role + "-login";
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Analyst Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+    .sidebar {
+      width: 250px;
+      background: #343a40;
+      color: white;
+      height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .sidebar button {
+      width: 100%;
+      background: none;
+      border: none;
+      color: white;
+      text-align: left;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .sidebar button:hover {
+      background: #495057;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+    }
+    .incident-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .incident-table th,
+    .incident-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .incident-table th {
+      background: #007bff;
+      color: white;
+    }
+    .incident-details {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Analyst Panel</h2>
+
+    <!-- Logged in Analyst -->
+    <label for="loggedAnalyst">Logged in as:</label>
+    <select id="loggedAnalyst" onchange="loadAssignedIncidents()">
+      <option value="Analyst 1">Analyst 1</option>
+      <option value="Analyst 2">Analyst 2</option>
+      <option value="Analyst 3">Analyst 3</option>
+    </select>
+
+    <button onclick="showAssignedIncidents()">Assigned Incidents</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Assigned Incidents Section -->
+  <div id="assigned-incidents" class="content">
+    <h2>Assigned Incidents</h2>
+    <table class="incident-table">
+      <thead>
+        <tr>
+          <th>Attack Type</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="incident-list"></tbody>
+    </table>
+
+    <div id="incident-details" class="incident-details"></div>
+  </div>
+
+  <script>
+    let assignedIncidents = JSON.parse(localStorage.getItem("assignments")) || [];
+
+    function showAssignedIncidents() {
+      document.getElementById("assigned-incidents").style.display = "block";
+      loadAssignedIncidents();
+    }
+
+    // Filter and load assigned incidents for the currently logged-in analyst
+    function loadAssignedIncidents() {
+      assignedIncidents = JSON.parse(localStorage.getItem("assignments")) || [];
+      const loggedAnalyst = document.getElementById("loggedAnalyst").value;
+
+      const filtered = assignedIncidents.filter(
+        inc => inc.analyst === loggedAnalyst
+      );
+
+      const tableBody = document.getElementById("incident-list");
+      tableBody.innerHTML = "";
+
+      filtered.forEach((incident, index) => {
+        // If status is not in the object yet, default to "Investigating"
+        if (!incident.status) {
+          incident.status = "Investigating";
+        }
+
+        tableBody.innerHTML += `
+          <tr>
+            <td>${incident.attackType}</td>
+            <td>
+              <select onchange="updateIncidentStatus(${index}, this.value)">
+                <option value="Investigating" ${
+                  incident.status === "Investigating" ? "selected" : ""
+                }>Investigating</option>
+                <option value="Resolved" ${
+                  incident.status === "Resolved" ? "selected" : ""
+                }>Resolved</option>
+              </select>
+            </td>
+            <td><button onclick="viewIncidentDetails(${index})">View</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    // Update the incident status and persist in localStorage
+    function updateIncidentStatus(index, newStatus) {
+        const loggedAnalyst = document.getElementById("loggedAnalyst").value;
+        let assigned = JSON.parse(localStorage.getItem("assignments")) || [];
+
+        const filtered = assigned.filter(inc => inc.analyst === loggedAnalyst);
+        filtered[index].status = newStatus;
+
+        assigned.forEach(obj => {
+            if (obj.attackType === filtered[index].attackType && obj.analyst === filtered[index].analyst) {
+                obj.status = newStatus;
+            }
+        });
+
+        localStorage.setItem("assignments", JSON.stringify(assigned));
+
+        // If status is "Resolved", notify the admin
+        if (newStatus === "Resolved") {
+            let notifications = JSON.parse(localStorage.getItem("notifications")) || [];
+            notifications.push(`Incident '${filtered[index].attackType}' has been resolved by ${loggedAnalyst}`);
+            localStorage.setItem("notifications", JSON.stringify(notifications));
+        }
+
+        alert(`Status updated to ${newStatus}`);
+        loadAssignedIncidents();
+    }
+
+      localStorage.setItem("assignments", JSON.stringify(assignedIncidents));
+
+      alert(`Status updated to ${newStatus}`);
+      loadAssignedIncidents();
+    
+
+    function viewIncidentDetails(index) {
+      const loggedAnalyst = document.getElementById("loggedAnalyst").value;
+      const filtered = assignedIncidents.filter(inc => inc.analyst === loggedAnalyst);
+      const incident = filtered[index];
+
+      if (!incident.details) {
+        incident.details = "No extra details provided by admin.";
+      }
+
+      document.getElementById("incident-details").innerHTML = `
+        <h3>Attack Type: ${incident.attackType}</h3>
+        <p><b>Status:</b> ${incident.status}</p>
+        <p><b>Details:</b> ${incident.details}</p>
+      `;
+      document.getElementById("incident-details").style.display = "block";
+    }
+
+    function logout() {
+      alert("Logging out...");
+      window.location.href = "/";
+    }
+
+    // On page load, show the assigned incidents
+    window.onload = function() {
+      document.getElementById("assigned-incidents").style.display = "block";
+      loadAssignedIncidents();
+    };
+  </script>
+</body>
+</html>
